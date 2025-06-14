@@ -7,7 +7,7 @@ app = FastAPI()
 
 class BirthData(BaseModel):
     birth_date: str
-    birth_time: str = "12:00"  # по умолчанию полдень
+    birth_time: str = None  # теперь допускаем None
 
 @app.post("/")
 async def get_bazi(data: BirthData):
@@ -16,8 +16,14 @@ async def get_bazi(data: BirthData):
         print("birth_date:", data.birth_date)
         print("birth_time:", data.birth_time)
 
+        # Разбор даты
         day, month, year = map(int, data.birth_date.strip().split("."))
-        hour, minute = map(int, data.birth_time.strip().split(":"))
+
+        # Разбор времени (в формате hh.mm), или подставляем 12:00
+        if not data.birth_time or "." not in data.birth_time:
+            hour, minute = 12, 0
+        else:
+            hour, minute = map(int, data.birth_time.strip().split("."))
 
         solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
         lunar = solar.getLunar()
