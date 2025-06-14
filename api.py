@@ -7,23 +7,17 @@ app = FastAPI()
 
 class BirthData(BaseModel):
     birth_date: str  # формат: dd.mm.yyyy
-    birth_time: str = "00.12"  # формат: mm.hh
+    birth_time: str = "12:00"  # НОВЫЙ ФОРМАТ: HH:MM
 
 @app.post("/")
 async def get_bazi(data: BirthData):
     try:
         day, month, year = map(int, data.birth_date.strip().split("."))
-        minute, hour = map(int, data.birth_time.strip().split("."))
+        hour, minute = map(int, data.birth_time.strip().split(":"))
+
         solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
         eight_char = solar.getLunar().getEightChar()
 
-        # Столпы
-        year_pillar = eight_char.getYear()
-        month_pillar = eight_char.getMonth()
-        day_pillar = eight_char.getDay()
-        hour_pillar = eight_char.getTime()
-
-        # Извлечение информации
         def extract(pillar):
             stem = pillar[0]
             branch = pillar[1]
@@ -47,10 +41,10 @@ async def get_bazi(data: BirthData):
                 "animal": animal
             }
 
-        year = extract(year_pillar)
-        month = extract(month_pillar)
-        day = extract(day_pillar)
-        hour = extract(hour_pillar)
+        year = extract(eight_char.getYear())
+        month = extract(eight_char.getMonth())
+        day = extract(eight_char.getDay())
+        hour = extract(eight_char.getTime())
 
         return {
             "pillar_year": year["pillar"],
@@ -73,10 +67,11 @@ async def get_bazi(data: BirthData):
             "hour_yinyang": hour["yinyang"],
             "hour_animal": hour["animal"],
 
-            "element_self": day["element"],
             "element": day["element"],
+            "element_self": day["element"],
             "yin_yang": day["yinyang"]
         }
 
     except Exception as e:
         return {"error": str(e)}
+
