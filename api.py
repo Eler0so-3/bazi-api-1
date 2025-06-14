@@ -6,19 +6,29 @@ from lunar_python import Solar
 app = FastAPI()
 
 class BirthData(BaseModel):
-    birth_date: str  # формат: dd.mm.yyyy
-    birth_time: str = "12:00"  # НОВЫЙ ФОРМАТ: HH:MM
+    birth_date: str
+    birth_time: str = "12:00"  # по умолчанию полдень
 
 @app.post("/")
 async def get_bazi(data: BirthData):
     try:
+        print("=== Запрос получен ===")
+        print("birth_date:", data.birth_date)
+        print("birth_time:", data.birth_time)
+
         day, month, year = map(int, data.birth_date.strip().split("."))
         hour, minute = map(int, data.birth_time.strip().split(":"))
 
         solar = Solar.fromYmdHms(year, month, day, hour, minute, 0)
-        eight_char = solar.getLunar().getEightChar()
+        lunar = solar.getLunar()
+        eight_char = lunar.getEightChar()
+
+        if not eight_char:
+            return {"error": "EightChar is empty"}
 
         def extract(pillar):
+            if not pillar:
+                return {"pillar": "", "element": "", "yinyang": "", "animal": ""}
             stem = pillar[0]
             branch = pillar[1]
             element = {
@@ -27,13 +37,13 @@ async def get_bazi(data: BirthData):
                 "戊": "Земля", "己": "Земля",
                 "庚": "Металл", "辛": "Металл",
                 "壬": "Вода", "癸": "Вода"
-            }[stem]
-            yin_yang = "Ян" if stem in "甲丙戊庚壬" else "Инь"
+            }.get(stem, "")
+            yin_yang = "Ян" if stem in "甲丙戊庚壬" else "Инь" if stem else ""
             animal = {
                 "子": "Крыса", "丑": "Бык", "寅": "Тигр", "卯": "Кролик",
                 "辰": "Дракон", "巳": "Змея", "午": "Лошадь", "未": "Коза",
                 "申": "Обезьяна", "酉": "Петух", "戌": "Собака", "亥": "Свинья"
-            }[branch]
+            }.get(branch, "")
             return {
                 "pillar": pillar,
                 "element": element,
@@ -45,6 +55,8 @@ async def get_bazi(data: BirthData):
         month = extract(eight_char.getMonth())
         day = extract(eight_char.getDay())
         hour = extract(eight_char.getTime())
+
+        print("RESULT:", year, month, day, hour)
 
         return {
             "pillar_year": year["pillar"],
@@ -73,5 +85,5 @@ async def get_bazi(data: BirthData):
         }
 
     except Exception as e:
+        print("Ошибка:", str(e))
         return {"error": str(e)}
-
